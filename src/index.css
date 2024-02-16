@@ -1,0 +1,17 @@
+*, *:not(i)::before, *::after {
+	box-sizing: border-box;
+	font-family: 'Quicksand', sans-serif;
+	outline: none;
+}
+
+.tox-tinymce-aux {
+	z-index: 10000 !important;
+}
+
+.tox-tinymce {
+	flex-grow: 1;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

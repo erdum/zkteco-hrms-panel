@@ -1,0 +1,46 @@
+name: Deploy React Panel on Push
+on:
+  push:
+    branches:
+    - main
+jobs:
+  web-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the Latest Code from Repo
+        uses: actions/checkout@v3
+      - name: Setup Node Envoirment
+        uses: actions/setup-node@v3
+      - name: Installing Project Dependencies
+        run: npm install
+      - name: Building Project
+        run: npm run build
+      - name: FTP Deploy (assets)
+        uses: SamKirkland/FTP-Deploy-Action@4.3.2
+        with:
+          server: college.studywoo.com
+          username: a1659gai
+          password: ${{ secrets.ftp_password }}
+          local-dir: ./dist/
+          server-dir: college.studywoo.com/public/admin2/
+          exclude: |
+            index.html
+      - name: FTP Deploy (index.html)
+        uses: SamKirkland/FTP-Deploy-Action@4.3.2
+        with:
+          server: college.studywoo.com
+          username: a1659gai
+          password: ${{ secrets.ftp_password }}
+          local-dir: ./dist/
+          server-dir: college.studywoo.com/resources/views/
+          exclude: |
+            *
+            !index.html
+      - name: Rename index.html to admin2_panel.blade.php
+        shell: python
+        run: |
+          import ftplib
+          ftp = ftplib.FTP('college.studywoo.com')
+          ftp.login('a1659gai', '${{ secrets.ftp_password }}')
+          ftp.rename('college.studywoo.com/resources/views/index.html', 'college.studywoo.com/resources/views/admin2_panel.blade.php')
+          ftp.quit()
