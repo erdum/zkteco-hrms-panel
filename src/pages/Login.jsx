@@ -40,7 +40,7 @@ const Login = () => {
 	const authenticateUser = async () => {
 
 		if (!credentials) return;
-		const req = await fetch(
+		const res = await fetch(
 			`${import.meta.env.VITE_APP_API_URL}/login-email`,
 			{
 				method: "POST",
@@ -51,12 +51,31 @@ const Login = () => {
 			}
 		);
 
-		if (req.ok) {
-			const { data } = await req.json();
-			return data;
+
+		if (res.ok) {
+			const { data: { token } } = await res.json();
+
+			const profileRes = await fetch(
+				`${import.meta.env.VITE_APP_API_URL}/users/get-profile`,
+				{
+					headers: {
+						"Authorization": `Bearer ${token}`,
+					}
+				}
+			);
+
+			if (profileRes.ok) {
+				const { data: { user } } = await profileRes.json();
+
+				return { ...user, token };
+			} else {
+				const { error } = await profileRes.json();
+				throw new Error(error, { cause: profileRes.status });
+			}
+		} else {
+			const { error } = await res.json();
+			throw new Error(error, { cause: res.status });
 		}
-		const { error } = await req.json();
-		throw new Error(error, { cause: req.status });
 	};
 
 	const successHandler = (data) => {
