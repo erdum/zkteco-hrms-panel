@@ -50,32 +50,29 @@ const Login = () => {
 				body: JSON.stringify(credentials),
 			}
 		);
+		const data = await res.json();
 
+		if (!res.ok) throw new TypeError(
+			data?.error,
+			{ cause: res.status }
+		);
 
-		if (res.ok) {
-			const { data: { token } } = await res.json();
-
-			const profileRes = await fetch(
-				`${import.meta.env.VITE_APP_API_URL}/users/get-profile`,
-				{
-					headers: {
-						"Authorization": `Bearer ${token}`,
-					}
+		const profileRes = await fetch(
+			`${import.meta.env.VITE_APP_API_URL}/users/get-profile`,
+			{
+				headers: {
+					"Authorization": `Bearer ${data?.data?.token}`,
 				}
-			);
-
-			if (profileRes.ok) {
-				const { data: { user } } = await profileRes.json();
-
-				return { ...user, token };
-			} else {
-				const { error } = await profileRes.json();
-				throw new Error(error, { cause: profileRes.status });
 			}
-		} else {
-			const { error } = await res.json();
-			throw new Error(error, { cause: res.status });
-		}
+		);
+		const profileData = await profileRes.json();
+
+		if (!profileRes.ok) throw new TypeError(
+			profileData?.error,
+			{ cause: profileRes.status }
+		);
+
+		return { ...data?.data?.user, ...data?.data?.token };
 	};
 
 	const successHandler = (data) => {
@@ -106,23 +103,27 @@ const Login = () => {
 
 		if (!error) return;
 
-		if (error.cause === 401) {
-			invalidateCredentials(error.message);
-		} else {
-			const id = "login-error";
+		let errorDescription = 'Request failed from the server !';
 
-			if (!toast.isActive(id)) {
-				toast({
-					...toastSettings,
-					id,
-					title: "Login Failed",
-					description:
-						error.cause === undefined
-							? "Network error, check your Internet connection !"
-							: "Request failed from the server !",
-					status: "error",
-				});
-			}
+		if (error instanceof SyntaxError) {
+			errorDescription = 'Request failed, unable to parse response !';
+		}
+
+		if (error.cause === 401) {
+			return invalidateCredentials(error.message);
+		} else if (error.cause == undefined) {
+			errorDescription = 'Network error, check your Internet connection !';
+		}
+		const id = "login-error";
+
+		if (!toast.isActive(id)) {
+			toast({
+				...toastSettings,
+				id,
+				title: "Login Failed",
+				description: errorDescription,
+				status: "error",
+			});
 		}
 	};
 
